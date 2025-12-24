@@ -4,21 +4,30 @@ from PIL import Image
 import os
 
 # -----------------------------
+# Ensure uploads folder exists
+# -----------------------------
+uploads_dir = "uploads"
+os.makedirs(uploads_dir, exist_ok=True)
+
+# -----------------------------
 # DATABASE SETUP
 # -----------------------------
-# Create database in working directory
 db_path = "invoices.db"
 conn = sqlite3.connect(db_path, check_same_thread=False)
 cursor = conn.cursor()
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS invoices (
-    invoice_no TEXT PRIMARY KEY,
-    filename TEXT,
-    doc_type TEXT
-)
-""")
-conn.commit()
+# Create table if missing
+try:
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS invoices (
+        invoice_no TEXT PRIMARY KEY,
+        filename TEXT,
+        doc_type TEXT
+    )
+    """)
+    conn.commit()
+except Exception as e:
+    st.error(f"Database error: {e}")
 
 # -----------------------------
 # STREAMLIT UI
@@ -49,27 +58,22 @@ if choice == "Upload Invoice":
 
     if st.button("Upload"):
         if invoice_no and uploaded_file:
-
-            # Create uploads folder if missing
-            uploads_dir = "uploads"
-            os.makedirs(uploads_dir, exist_ok=True)
-
-            # Save file with original extension
             file_ext = uploaded_file.name.split('.')[-1]
             file_path = os.path.join(uploads_dir, f"{invoice_no}.{file_ext}")
 
-            with open(file_path, "wb") as f:
-                f.write(uploaded_file.getbuffer())
+            try:
+                with open(file_path, "wb") as f:
+                    f.write(uploaded_file.getbuffer())
 
-            # Save to database
-            cursor.execute(
-                "INSERT OR REPLACE INTO invoices (invoice_no, filename, doc_type) VALUES (?, ?, ?)",
-                (invoice_no, file_path, doc_type)
-            )
-            conn.commit()
+                cursor.execute(
+                    "INSERT OR REPLACE INTO invoices (invoice_no, filename, doc_type) VALUES (?, ?, ?)",
+                    (invoice_no, file_path, doc_type)
+                )
+                conn.commit()
 
-            st.success(f"Uploaded successfully! File saved at: {file_path}")
-
+                st.success(f"Uploaded successfully! File saved at: {file_path}")
+            except Exception as e:
+                st.error(f"Upload failed: {e}")
         else:
             st.error("Please enter invoice number and upload a file.")
 
@@ -82,20 +86,23 @@ elif choice == "Search Invoice":
     search_no = st.text_input("Enter Invoice Number to Search")
 
     if st.button("Search"):
-        cursor.execute(
-            "SELECT filename, doc_type FROM invoices WHERE invoice_no = ?",
-            (search_no,)
-        )
-        result = cursor.fetchone()
+        try:
+            cursor.execute(
+                "SELECT filename, doc_type FROM invoices WHERE invoice_no = ?",
+                (search_no,)
+            )
+            result = cursor.fetchone()
 
-        if result:
-            filename, doc_type = result
-            st.info(f"Document Type: {doc_type}")
+            if result:
+                filename, doc_type = result
+                st.info(f"Document Type: {doc_type}")
 
-            if os.path.exists(filename):
-                img = Image.open(filename)
-                st.image(img, caption=f"Invoice {search_no}", use_column_width=True)
+                if os.path.exists(filename):
+                    img = Image.open(filename)
+                    st.image(img, caption=f"Invoice {search_no}", use_column_width=True)
+                else:
+                    st.error("Image file not found in uploads folder.")
             else:
-                st.error("Image file not found in uploads folder.")
-        else:
-            st.error("Invoice not found in database.")
+                st.error("Invoice not found in database.")
+        except Exception as e:
+            st.error(f"Search failed: {e}")
