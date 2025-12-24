@@ -22,6 +22,10 @@ conn.commit()
 # STREAMLIT UI
 # -----------------------------
 st.set_page_config(page_title="Fern n Petal Invoice App", layout="centered")
+
+# ✅ HEADER IMAGE — Replace with your own image URL later
+st.image("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMjIlWhghNsnF_rRKdrmEPlcwd76H69EFVjw&s", use_column_width=True)
+
 st.title("🌿 Fern n Petal – Invoice Manager")
 
 menu = ["Upload Invoice", "Search Invoice"]
@@ -35,14 +39,12 @@ if choice == "Upload Invoice":
 
     invoice_no = st.text_input("Enter Invoice Number")
 
-    # Checkbox field
     doc_type = st.radio("Select Document Type", ["Invoice", "Delivery Note"])
 
     uploaded_file = st.file_uploader("Upload Invoice Image", type=["jpg", "jpeg", "png"])
 
     if st.button("Upload"):
         if invoice_no and uploaded_file:
-            # Save file locally
             uploads_dir = "uploads"
             os.makedirs(uploads_dir, exist_ok=True)
 
@@ -50,7 +52,6 @@ if choice == "Upload Invoice":
             with open(file_path, "wb") as f:
                 f.write(uploaded_file.read())
 
-            # Save metadata in DB
             cursor.execute("INSERT OR REPLACE INTO invoices VALUES (?, ?, ?)",
                            (invoice_no, file_path, doc_type))
             conn.commit()
