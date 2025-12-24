@@ -6,8 +6,7 @@ import os
 # -----------------------------
 # DATABASE SETUP
 # -----------------------------
-db_path = os.path.join(os.getcwd(), "invoices.db")
-conn = sqlite3.connect(db_path, check_same_thread=False)
+conn = sqlite3.connect("invoices.db", check_same_thread=False)
 cursor = conn.cursor()
 
 cursor.execute("""
@@ -23,13 +22,8 @@ conn.commit()
 # STREAMLIT UI
 # -----------------------------
 st.set_page_config(page_title="Fern n Petal Invoice App", layout="centered")
+st.title("Fern n Petal – Invoice Manager")
 
-# ✅ HEADER IMAGE — Replace with your own if needed
-st.image("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMjIlWhghNsnF_rRKdrmEPlcwd76H69EFVjw&s", use_column_width=True)
-
-st.title("🌿 Fern n Petal – Invoice Manager")
-
-# ✅ Sidebar menu
 menu = ["Upload Invoice", "Search Invoice"]
 choice = st.sidebar.radio("Menu", menu)
 
@@ -57,8 +51,10 @@ if choice == "Upload Invoice":
             with open(file_path, "wb") as f:
                 f.write(uploaded_file.getbuffer())
 
-            cursor.execute("INSERT OR REPLACE INTO invoices VALUES (?, ?, ?)",
-                           (invoice_no, file_path, doc_type))
+            cursor.execute(
+                "INSERT OR REPLACE INTO invoices (invoice_no, filename, doc_type) VALUES (?, ?, ?)",
+                (invoice_no, file_path, doc_type),
+            )
             conn.commit()
 
             st.success(f"Uploaded successfully! Saved as {file_path}")
@@ -74,7 +70,10 @@ elif choice == "Search Invoice":
     search_no = st.text_input("Enter Invoice Number to Search")
 
     if st.button("Search"):
-        cursor.execute("SELECT filename, doc_type FROM invoices WHERE invoice_no = ?", (search_no,))
+        cursor.execute(
+            "SELECT filename, doc_type FROM invoices WHERE invoice_no = ?",
+            (search_no,),
+        )
         result = cursor.fetchone()
 
         if result:
@@ -85,6 +84,6 @@ elif choice == "Search Invoice":
                 img = Image.open(filename)
                 st.image(img, caption=f"Invoice {search_no}", use_column_width=True)
             else:
-                st.error("Image file not found.")
+                st.error("Image file not found on server.")
         else:
             st.error("Invoice not found.")
