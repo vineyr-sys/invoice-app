@@ -23,13 +23,14 @@ conn.commit()
 # -----------------------------
 st.set_page_config(page_title="Fern n Petal Invoice App", layout="centered")
 
-# ✅ HEADER IMAGE — Replace with your own image URL later
+# ✅ HEADER IMAGE — Replace with your own later
 st.image("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMjIlWhghNsnF_rRKdrmEPlcwd76H69EFVjw&s", use_column_width=True)
 
 st.title("🌿 Fern n Petal – Invoice Manager")
 
+# ✅ Sidebar menu with both options
 menu = ["Upload Invoice", "Search Invoice"]
-choice = st.sidebar.selectbox("Menu", menu)
+choice = st.sidebar.radio("Menu", menu)
 
 # -----------------------------
 # UPLOAD PAGE
