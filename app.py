@@ -1,20 +1,7 @@
 import streamlit as st
 import sqlite3
 from PIL import Image
-import io
-from pydrive.auth import GoogleAuth
-from pydrive.drive import GoogleDrive
-
-# -----------------------------
-# GOOGLE DRIVE AUTH
-# -----------------------------
-@st.cache_resource
-def connect_drive():
-    gauth = GoogleAuth()
-    gauth.LocalWebserverAuth()  # Opens browser for login
-    return GoogleDrive(gauth)
-
-drive = connect_drive()
+import os
 
 # -----------------------------
 # DATABASE SETUP
@@ -25,8 +12,8 @@ cursor = conn.cursor()
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS invoices (
     invoice_no TEXT PRIMARY KEY,
-    file_id TEXT,
-    type TEXT
+    filename TEXT,
+    doc_type TEXT
 )
 """)
 conn.commit()
@@ -34,6 +21,7 @@ conn.commit()
 # -----------------------------
 # STREAMLIT UI
 # -----------------------------
+st.set_page_config(page_title="Fern n Petal Invoice App", layout="centered")
 st.title("🌿 Fern n Petal – Invoice Manager")
 
 menu = ["Upload Invoice", "Search Invoice"]
@@ -43,7 +31,7 @@ choice = st.sidebar.selectbox("Menu", menu)
 # UPLOAD PAGE
 # -----------------------------
 if choice == "Upload Invoice":
-    st.header("Upload Invoice to Google Drive")
+    st.header("Upload Invoice")
 
     invoice_no = st.text_input("Enter Invoice Number")
 
@@ -54,19 +42,20 @@ if choice == "Upload Invoice":
 
     if st.button("Upload"):
         if invoice_no and uploaded_file:
-            # Upload to Google Drive
-            file_drive = drive.CreateFile({'title': f"{invoice_no}.jpg"})
-            file_drive.SetContentBytes(uploaded_file.read())
-            file_drive.Upload()
+            # Save file locally
+            uploads_dir = "uploads"
+            os.makedirs(uploads_dir, exist_ok=True)
 
-            file_id = file_drive['id']
+            file_path = os.path.join(uploads_dir, f"{invoice_no}.jpg")
+            with open(file_path, "wb") as f:
+                f.write(uploaded_file.read())
 
             # Save metadata in DB
             cursor.execute("INSERT OR REPLACE INTO invoices VALUES (?, ?, ?)",
-                           (invoice_no, file_id, doc_type))
+                           (invoice_no, file_path, doc_type))
             conn.commit()
 
-            st.success(f"Uploaded successfully to Google Drive! File ID: {file_id}")
+            st.success(f"Uploaded successfully! Saved as {file_path}")
         else:
             st.error("Please enter invoice number and upload a file.")
 
@@ -79,19 +68,17 @@ elif choice == "Search Invoice":
     search_no = st.text_input("Enter Invoice Number to Search")
 
     if st.button("Search"):
-        cursor.execute("SELECT file_id, type FROM invoices WHERE invoice_no = ?", (search_no,))
+        cursor.execute("SELECT filename, doc_type FROM invoices WHERE invoice_no = ?", (search_no,))
         result = cursor.fetchone()
 
         if result:
-            file_id, doc_type = result
-
+            filename, doc_type = result
             st.info(f"Document Type: {doc_type}")
 
-            # Download from Google Drive
-            file_drive = drive.CreateFile({'id': file_id})
-            file_drive.GetContentFile("temp.jpg")
-
-            img = Image.open("temp.jpg")
-            st.image(img, caption=f"Invoice {search_no}", use_column_width=True)
+            if os.path.exists(filename):
+                img = Image.open(filename)
+                st.image(img, caption=f"Invoice {search_no}", use_column_width=True)
+            else:
+                st.error("Image file not found.")
         else:
             st.error("Invoice not found.")
