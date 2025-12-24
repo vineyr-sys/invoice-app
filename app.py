@@ -6,7 +6,8 @@ import os
 # -----------------------------
 # DATABASE SETUP
 # -----------------------------
-conn = sqlite3.connect("invoices.db", check_same_thread=False)
+db_path = os.path.join(os.getcwd(), "invoices.db")
+conn = sqlite3.connect(db_path, check_same_thread=False)
 cursor = conn.cursor()
 
 cursor.execute("""
