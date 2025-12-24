@@ -23,12 +23,12 @@ conn.commit()
 # -----------------------------
 st.set_page_config(page_title="Fern n Petal Invoice App", layout="centered")
 
-# ✅ HEADER IMAGE — Replace with your own later
+# ✅ HEADER IMAGE — Replace with your own if needed
 st.image("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMjIlWhghNsnF_rRKdrmEPlcwd76H69EFVjw&s", use_column_width=True)
 
 st.title("🌿 Fern n Petal – Invoice Manager")
 
-# ✅ Sidebar menu with both options
+# ✅ Sidebar menu
 menu = ["Upload Invoice", "Search Invoice"]
 choice = st.sidebar.radio("Menu", menu)
 
@@ -49,9 +49,12 @@ if choice == "Upload Invoice":
             uploads_dir = "uploads"
             os.makedirs(uploads_dir, exist_ok=True)
 
-            file_path = os.path.join(uploads_dir, f"{invoice_no}.jpg")
+            # Preserve original extension
+            file_ext = uploaded_file.name.split('.')[-1]
+            file_path = os.path.join(uploads_dir, f"{invoice_no}.{file_ext}")
+
             with open(file_path, "wb") as f:
-                f.write(uploaded_file.read())
+                f.write(uploaded_file.getbuffer())
 
             cursor.execute("INSERT OR REPLACE INTO invoices VALUES (?, ?, ?)",
                            (invoice_no, file_path, doc_type))
